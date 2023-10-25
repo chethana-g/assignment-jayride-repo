@@ -1,0 +1,140 @@
+Task 1 Solution:
+
+url: http://localhost:port/api/candidate
+
+Model: 
+public class DataModel
+{
+  public string Name{get; set;}
+  public string Phone{get; set;}
+}
+
+API Controller method:
+
+using Microsoft.AspNetCore.Mvc
+namespace CandidateAPI.Controllers
+{
+[ApiController]
+[Route("api/candidate")]
+public class CandidateController : ControllerBase
+{
+  [HttpGet]
+  public ActionResult<DataModel> GetCandidate()
+  {
+    var candidateInfo = new DataModel
+    {
+      Name = "test"
+      Phone= "test"
+    };
+    return Ok(candidateInfo);
+  }
+ }
+}
+
+
+
+--------------------------------------------------------------------------
+Task 2 solutions:
+
+Model:
+public class LocationInfo 
+{
+public string City{get; set;}
+}
+
+API controller method:
+
+[Route ("api/location")]
+[ApiController]
+public class LocationController: ControllerBase
+{
+   private readonly string ipstackApiKey = "YOUR_API_KEY_HERE"; // Replace with your actual API key
+
+  [HttpGet ("(ipAddress}")]
+  public async Task<ActionResult<LocationInfo>> GetLocation(string ipAddress)
+  {
+    using (var client = new HttpClient())
+     {
+      // Make a GET request to the ipstack API
+        var response = await client.GetAsync ($"http://api.ipstack.com/{ipAddress}?access_key={ipstackApiKey}");
+        if (response.IsSuccessStatusCode)
+        {
+          // Deserialize the API response into a LocationInfo object
+          var locationInfo = await response.Content.ReadAsAsync<LocationInfo>(); 
+          return Ok (location Info);
+        }
+        else
+        {
+         return Not Found ();
+        }
+      }
+    }
+}
+
+---------------------------------------------------------
+
+Task 3 Solution:
+
+Model:
+
+public class Listing
+{
+  public int Id { get; set; }
+  public string Name { get; set; }
+  public int PassengerCount { get; set; } 
+  public decimal Base Price { get; set; }
+}
+
+
+public class SearchResult
+{
+  public List<Listing> Listings { get; set; }
+}
+
+API Controller method:
+
+[Route ("api/listings")]
+[ApiController]
+public class ListingsController : ControllerBase
+{
+
+    private readonly string externalApiUrl = "https://jayridechallengeapi.azurewebsite.net/api/QuoteRequest";
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Listing>>> GetListings(int passengerCount)
+    {
+      // Call the external API's search endpoint
+      using (var client = new HttpClient())
+      {
+        var response = await client.GetAsync(externalApiUrl);
+
+        if (!response.IsSuccessStatusCode)
+        {
+          return BadRequest ("Failed to retrieve data from the external API.");
+        }
+        var searchResult = await response.Content.ReadAsAsync<SearchResult>();
+
+        // Filter listings based on passenger count
+        var filteredListings = searchResult.Listings
+       .Where (a => a.PassengerCount>= passengerCount).ToList();
+
+       // Calculate total price for each listing
+       foreach (var listing in filteredListings)
+       {
+         listing.TotalPrice = CalculateTotalPrice(listing);
+       }
+
+       // Sort listings by total price
+       filteredListings= filteredListings.OrderBy(listing => listing.TotalPrice).ToList();
+       return Ok(filteredListings);
+     }
+   }
+   //Method to calculate the total price based on the listing's data 
+   private decimal CalculateTotalPrice(Listing listing)
+   {
+     // You can implement your logic to calculate the total price here 
+     // For example: return listing.BasePrice * passengerCount;
+ 
+     return listing.BasePrice * passengerCount;
+   }
+}
